@@ -1,16 +1,20 @@
 {
-  "name": "simple-smartapp",
+  "name": "weather-smartapp",
   "version": "1.0.0",
-  "description": "Smart app that randomly turns light on and off.",
+  "description": "N/A.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "author": "Nicholas Diesslin",
+  "author": "Akashdeep Singh",
   "license": "ISC",
   "dependencies": {
     "@smartthings/smartapp": "^2.5.2",
-    "express": "^4.17.1"
+    "axios": "^1.4.0",
+    "colors": "^1.4.0",
+    "dotenv": "^16.3.0",
+    "express": "^4.17.1",
+    "twilio": "^4.12.0"
   }
 }
