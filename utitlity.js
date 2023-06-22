@@ -50,16 +50,13 @@ const ringPhoneNumber = async context => {
         })
 }
 
-const pushNotification = async (context, rooms) => {
+const pushNotification = async (context, title, message) => {
   notificationCnt++;
-  let message = "Windows are open in : ";
-  for(let roomName of rooms){
-    message += roomName + " ";
-  }
+
   const data = {
     type: "ALERT",
     locationId: context.locationId,
-    title: "Inclement Weather!",
+    title: title,
     message: message,
     deepLink: {
       type: "location",
@@ -69,7 +66,7 @@ const pushNotification = async (context, rooms) => {
   await context.api.notifications.create(data)
   await client.messages
         .create({
-          body: `Inclement Weather Condition!\n${message}`,
+          body: `${title}\n${message}`,
           from: '+14065057634',
           to: phoneNumber
         })
@@ -90,7 +87,7 @@ const checkWindow = async context => {
   for(let {deviceId, roomId} of multiPurposeSensors){
     const data = await context.api.devices.getStatus(deviceId)
     const windowStatus = data.components.main.contactSensor.contact.value;
-    if(windowStatus === "closed"){
+    if(windowStatus === "open"){
       open = true;
       const roomData = await context.api.rooms.get(roomId);
       rooms.push(roomData.name)
@@ -99,7 +96,12 @@ const checkWindow = async context => {
 
 
   if(open){
-    pushNotification(context, rooms);
+    let title = "Inclement Weather Alert!"
+    let message = "Windows are open in : ";
+    for(let roomName of rooms){
+      message += roomName + " ";
+    }
+    pushNotification(context, title, message);
   }
   else{
     notificationCnt = 0; 
@@ -139,20 +141,33 @@ const checkWeather = async context => {
   const forecastWeather = response2.data;
 
   const currentWeatherId = currentWeather.weather[0].id
+  const forecastWeatherId = forecastWeather.list[0].weather[0].id
 
-  const thunderStorm = currentWeatherId.startsWith("2");
-  const badAtmosphere = currentWeatherId.startsWith("7");
-  const heavySnowOrRain = ["502","503","504","522","602","622"].includes(currentWeatherId);
-  const windSpeed = currentWeather.wind.speed;
+  let thunderStorm = currentWeatherId.startsWith("2");
+  let badAtmosphere = currentWeatherId.startsWith("7");
+  let heavySnowOrRain = ["502","503","504","522","602","622"].includes(currentWeatherId);
+  let windSpeed = currentWeather.wind.speed;
 
-  const inclementWeather = thunderStorm || badAtmosphere || heavySnowOrRain || windSpeed > 15;
+  const inclementCurrentWeather = thunderStorm || badAtmosphere || heavySnowOrRain || windSpeed > 15;
 
-  if(inclementWeather){
+  thunderStorm = forecastWeatherId.startsWith("2");
+  badAtmosphere = forecastWeatherId.startsWith("7");
+  heavySnowOrRain = ["502","503","504","522","602","622"].includes(forecastWeatherId);
+  windSpeed = forecastWeather.list[0].wind.speed;
+
+  const inclementForecastWeather = thunderStorm || badAtmosphere || heavySnowOrRain || windSpeed > 15;
+
+  if(inclementCurrentWeather){
     checkWindow(context);
     await context.api.schedules.schedule('windowHandler', '0/02 * * * ? *')
   }
   else{
     await context.api.schedules.delete('windowHandler')
+    if(inclementForecastWeather){
+      const title = "Inclement Weather Forecast!"
+      const message = "It is likely going to be a bad weather. Be Ready!"
+      await pushNotification(context, title, message);
+    }
   }
 }
 

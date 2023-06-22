@@ -42,10 +42,12 @@ const smartApp = new SmartApp()
 
     await getDevices(context);
 
-    // const cronExpr = "0/30 * * * ? *";
+    const cronExpr = "0/30 * * * ? *";
 
-    // await context.api.schedules.schedule('weatherHandler', cronExpr)
-    // await checkWeather(context);
+    await context.api.schedules.schedule('weatherHandler', cronExpr)
+    await checkWeather(context);
+
+    // await context.api.schedules.schedule('test', '0/01 * * * ? *');
     
   })
 
@@ -58,6 +60,10 @@ const smartApp = new SmartApp()
   // Check Window(open/closed) every 2 minutes In case of an inclement weather
   .scheduledEventHandler('windowHandler', async (context, event) => {
     await checkWindow(context);
+  })
+
+  .scheduledEventHandler('test', async (context, event) => {
+    checkWindow(context);
   })
 
   .uninstalled(async context => {
