@@ -1,13 +1,15 @@
 require('dotenv').config();
 const SmartApp = require('@smartthings/smartapp');
-const {checkWeather, checkWindow, pushNotification, getDevices, setNotificationCnt, setPhoneNumber, setCity, clearArray, multiPurposeSensors} = require('./utitlity')
+const {checkWeather, checkWindow, getDevices, setNotificationCnt, setPhoneNumber, setCity, clearArray, checkPollution, setLatLon, multiPurposeSensors} = require('./utitlity')
 
+
+let notifyAQI = ""
 
 
 /* Define the SmartApp */
 const smartApp = new SmartApp()
-  .configureI18n({updateFiles: true}) // Enable translations and update translation file when new items are added.
-  .enableEventLogging(2) // Logging for testing.
+  .configureI18n({updateFiles: true})
+  .enableEventLogging(2)
   .appId("my-app-id")
   .permissions([
     "r:devices:*",
@@ -22,6 +24,9 @@ const smartApp = new SmartApp()
         .required(true)
       section
         .textSetting('city')
+        .required(true)
+      section
+        .booleanSetting('notify')
         .required(true)
     })
     
@@ -39,15 +44,17 @@ const smartApp = new SmartApp()
     setCity(context.config.city[0].stringConfig.value)
     setNotificationCnt(0)
     clearArray(multiPurposeSensors)
+    notifyAQI = context.config.notify[0].stringConfig.value;
 
     await getDevices(context);
 
-    const cronExpr = "0/30 * * * ? *";
+    await context.api.schedules.schedule('weatherHandler', "0/30 * * * ? *")
 
-    await context.api.schedules.schedule('weatherHandler', cronExpr)
-    await checkWeather(context);
+    await setLatLon();
 
-    // await context.api.schedules.schedule('test', '0/01 * * * ? *');
+    if(notifyAQI === "true"){
+      await context.api.schedules.schedule('pollutionHandler', '00 08 * * ? *', 'Asia/Kolkata');
+    }
     
   })
 
@@ -60,6 +67,11 @@ const smartApp = new SmartApp()
   // Check Window(open/closed) every 2 minutes In case of an inclement weather
   .scheduledEventHandler('windowHandler', async (context, event) => {
     await checkWindow(context);
+  })
+
+  //Check AQI every morning at 08:00 AM and notify user
+  .scheduledEventHandler('pollutionHandler', async (context, event) => {
+    await checkPollution(context);
   })
 
   .scheduledEventHandler('test', async (context, event) => {

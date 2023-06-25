@@ -11,7 +11,10 @@ const client = require('twilio')(accountSid, authToken);
 let notificationCnt = 0;
 let phoneNumber = ""
 let city = ""
+let lat = ""
+let lon = ""
 const multiPurposeSensors = []
+
 
 
 const setNotificationCnt = cnt => {
@@ -51,8 +54,10 @@ const ringPhoneNumber = async context => {
 }
 
 const pushNotification = async (context, title, message) => {
-  notificationCnt++;
-
+  if(title === "Inclement Weather Alert!"){
+    notificationCnt++;
+  }
+    
   const data = {
     type: "ALERT",
     locationId: context.locationId,
@@ -87,7 +92,7 @@ const checkWindow = async context => {
   for(let {deviceId, roomId} of multiPurposeSensors){
     const data = await context.api.devices.getStatus(deviceId)
     const windowStatus = data.components.main.contactSensor.contact.value;
-    if(windowStatus === "open"){
+    if(windowStatus === "closed"){
       open = true;
       const roomData = await context.api.rooms.get(roomId);
       rooms.push(roomData.name)
@@ -108,16 +113,13 @@ const checkWindow = async context => {
   }
 }
 
-// Check weather conditiions using openweathermap API
-const checkWeather = async context => {
-  const currentWeatherUrl = `${weatherUrl}/weather`;
-  const forecastUrl = `${weatherUrl}/forecast`;
-
+// Extract latitude and longitude from city name
+const setLatLon = async () => {
   const config1 = {
-      params: {
-          q: `${city},in`,
-          APPID: weatherApiKey
-      }
+    params: {
+        q: `${city},in`,
+        APPID: weatherApiKey
+    }
   };
 
 
@@ -125,17 +127,27 @@ const checkWeather = async context => {
   const geocodingResponse = await axios.get(geocodingUrl, config1).catch(error => console.log(error));
   const geocodingData = geocodingResponse.data;
 
-  const config2 = {
+  lat = geocodingData[0].lat
+  lon = geocodingData[0].lon
+}
+
+// Check weather conditiions using openweathermap API
+const checkWeather = async context => {
+  const currentWeatherUrl = `${weatherUrl}/weather`;
+  const forecastUrl = `${weatherUrl}/forecast`;
+
+
+  const config = {
     params: {
-      lat: geocodingData[0].lat,
-      lon: geocodingData[0].lon,
+      lat: lat,
+      lon: lon,
       APPID: weatherApiKey,
       unit: "metric"
     }
   }
 
-  const response1 = await axios.get(currentWeatherUrl, config2).catch(error => console.log(error));
-  const response2 = await axios.get(forecastUrl, config2).catch(error => console.log(error));
+  const response1 = await axios.get(currentWeatherUrl, config).catch(error => console.log(error));
+  const response2 = await axios.get(forecastUrl, config).catch(error => console.log(error));
 
   const currentWeather = response1.data;
   const forecastWeather = response2.data;
@@ -171,6 +183,34 @@ const checkWeather = async context => {
   }
 }
 
+// Check current pollution level(AQI)
+const checkPollution = async (context) => {
+  const pollutionUrl = 'http://api.openweathermap.org/data/2.5/air_pollution'
+  const config = {
+    params: {
+      lat: lat,
+      lon: lon,
+      APPID: weatherApiKey,
+      unit: "metric"
+    }
+  }
+
+  const response = await axios.get(pollutionUrl, config).catch(error => console.log(error));
+  const data = response.data;
+  const aqi = data.list[0].main.aqi;
+
+  const title = `Air Quality Index is: ${aqi}`
+  let message = "";
+
+  if(aqi === 1) message = "Perfect for a morning walk!"
+  else if(aqi === 2) message = "Good for a morning walk!"
+  else if(aqi === 3) message = "Try to wear a mask if you are sensitive!"
+  else if(aqi === 4) message = "Please wear mask before going out!"
+  else message = "Try to stay indoors if possible!"
+
+  await pushNotification(context, title, message)
+}
+
 module.exports = {
     getDevices,
     ringPhoneNumber,
@@ -181,6 +221,8 @@ module.exports = {
     setNotificationCnt,
     setPhoneNumber,
     clearArray,
+    setLatLon,
+    checkPollution,
     notificationCnt,
     city,
     phoneNumber,

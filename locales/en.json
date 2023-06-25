@@ -3,5 +3,7 @@
 	"pages.mainPage.sections.userDetails.name": "User Details",
 	"pages.mainPage.settings.phoneNumber.name": "Phone Number",
 	"pages.mainPage.settings.city.name": "City/Town",
-	"Tap to set": "Tap to set"
+	"pages.mainPage.settings.notify.name": "Receive Morning AQI",
+	"Tap to set": "Tap to set",
+	"pages.mainPage.settings.notify.description": "Toggle for Yes/No"
 }
