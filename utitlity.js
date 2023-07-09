@@ -115,7 +115,7 @@ const checkWindow = async context => {
 
 // Extract latitude and longitude from city name
 const setLatLon = async () => {
-  const config1 = {
+  const config = {
     params: {
         q: `${city},in`,
         APPID: weatherApiKey
@@ -124,7 +124,7 @@ const setLatLon = async () => {
 
 
   // Convert city name to latitude/longitude
-  const geocodingResponse = await axios.get(geocodingUrl, config1).catch(error => console.log(error));
+  const geocodingResponse = await axios.get(geocodingUrl, config).catch(error => console.log(error));
   const geocodingData = geocodingResponse.data;
 
   lat = geocodingData[0].lat

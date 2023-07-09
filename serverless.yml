@@ -1,0 +1,30 @@
+service: weather-smart-app
+
+frameworkVersion: "3"
+
+package:
+  include:
+    - index.js
+    - smartapp.js
+    - utility.js
+    - locales/**
+  exclude:
+    - .git/**
+    - .gitignore
+    - .env*
+    - README.md
+    - server.js
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: dev
+
+  # replace with closest region to your geographic location for ideal latency
+  # see: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+  region: ap-south-1
+
+functions:
+  smartapp:
+    handler: index.handle
+    timeout: 600
